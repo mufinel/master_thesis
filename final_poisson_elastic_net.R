@@ -118,25 +118,33 @@ test_x <- as.matrix(test_matrix[,2:39])
 test_y <- as.vector(test_matrix$cases)
 
 # fit poisson model
-fit = glmnet(train_x, train_y, family = "poisson")
+fit = glmnet(train_x, train_y, family = "poisson", alpha = 0.5)
 plot(fit)
 
-cvfit = cv.glmnet(train_x, train_y, family = "poisson")
+
+cvfit = cv.glmnet(train_x, train_y, family = "poisson", alpha = 0.5)
 plot(cvfit)
 
-opt.lam = c(cvfit$lambda.1se)
+
+opt.lam = c(cvfit$lambda.1se, cvfit$lambda.min)
+
 coef(cvfit, s = opt.lam[1])
 
-prediction_y <- predict(fit, newx = test_x, type = "response", s = opt.lam)
 
-l1se_poi <- sum((test_y -prediction_y[1])^2)
-lmin_poi <- sum((test_y -prediction_y[2])^2)
+prediction_y1 <- predict(fit, newx = test_x, type = "response", s = opt.lam[1])
+prediction_y2 <- predict(fit, newx = test_x, type = "response", s = opt.lam[2])
 
 
-cbind(test_y, prediction_y)
+l1se_poi <- sum((test_y -prediction_y1)^2)
+lmin_poi <- sum((test_y -prediction_y2)^2)
 
-data.frame(
-  RMSE = RMSE(prediction_y, test_matrix$cases),
-  Rsquare = R2(prediction_y, test_matrix$cases)
-)
+#R2, MAAPE
+library(tsensembler)
+
+Rsquare1 = R2(prediction_y1, test_matrix$cases)
+Rsquare2 = R2(prediction_y2, test_matrix$cases)
+
+
+MAAPE1<- maape(test_y, prediction_y1)
+MAAPE2<- maape(test_y, prediction_y2)
 

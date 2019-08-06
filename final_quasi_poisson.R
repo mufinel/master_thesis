@@ -119,19 +119,18 @@ test_y <- as.vector(test_matrix$cases)
 
 # model poisson
 summary(data.quasipois <- glm(cases ~ 
-                           pop.nr.male +
-                           rain.val.mm +
-                           air.tem.max +
-                           soil.tem.mean2 +
-                           Cattle +
-                           own.fauc.com.wat.sys +
-                           own.tub.pip.dep.well +
-                           protec.spring  +       
-                           unprotec.spring   +    
-                           lake.riv.rain  +       
-                           pop.dens.km2
-                         
-                         , family="quasipoisson", train_matrix))
+                                pop.nr.male +
+                                pop.nr.female +
+                                rain.val.mm +
+                                air.tem.max +
+                                Cattle +
+                                own.fauc.com.wat.sys +
+                                own.tub.pip.dep.well +
+                                unprotec.spring   +    
+                                lake.riv.rain  +
+                                bottled.wat +
+                                pop.dens.km2
+                              , family="quasipoisson", train_matrix))
 
 # R^2
 r_sq_quasi <-R2logit(train_y,data.quasipois)
@@ -140,42 +139,55 @@ r_sq_quasi <-R2logit(train_y,data.quasipois)
 predicted_quasipois <- predict(data.quasipois, test_matrix)
 rmse_quasipois <- RMSE(predicted_quasipois, test_matrix$cases)
 
+# MASE
+
+MASE_quasi <- mase(test_y, predicted_quasipois)
+#MASE_quasi2 <- mase(test_y, predicted_quasipois, step_size = 12)
+
+# maape
+library(TSrepr)
+MAAPE_qpen <- maape(test_y, predicted_quasipois)
+
+
 # display
 coeff <-  summary(data.quasipois)$coefficients
 
 # check overdisp
 fit = glm(cases ~ 
             pop.nr.male +
+            pop.nr.female +
             rain.val.mm +
             air.tem.max +
-            soil.tem.mean2 +
             Cattle +
             own.fauc.com.wat.sys +
             own.tub.pip.dep.well +
-            protec.spring  +       
             unprotec.spring   +    
-            lake.riv.rain  +       
+            lake.riv.rain  +
+            bottled.wat +
             pop.dens.km2
           ,family="poisson",data=train_matrix) 
 
 fit.overdisp = glm(cases ~ 
                      pop.nr.male +
+                     pop.nr.female +
                      rain.val.mm +
                      air.tem.max +
-                     soil.tem.mean2 +
                      Cattle +
                      own.fauc.com.wat.sys +
                      own.tub.pip.dep.well +
-                     protec.spring  +       
                      unprotec.spring   +    
-                     lake.riv.rain  +       
+                     lake.riv.rain  +
+                     bottled.wat +
                      pop.dens.km2
                    ,family="quasipoisson",data=train_matrix) 
+
 
 summary(fit.overdisp)$dispersion # dispersion coefficient
 pchisq(summary(fit.overdisp)$dispersion * fit$df.residual, fit$df.residual, lower = F) # significance for overdispersion
 
 library(AER)
-disp_test <- dispersiontest(fit,trafo=1)
+disp_test <- dispersiontest(fit,trafo=NULL)
 disp_test$p.value
 disp_test$estimate
+
+

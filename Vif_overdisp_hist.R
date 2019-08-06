@@ -1,4 +1,5 @@
 library(dplyr)
+library(caTools)
 library(ggplot2)
 library(reshape2)
 library(plyr)
@@ -31,20 +32,24 @@ library(data.table)
 library(VIM)
 library(jomo)
 library(mice)
-library(rpart)
-library(randomForest)
-library(rpart.plot)
-library(caTools)
-library(brnn)
+library(mctest)
+library(Metrics)
+library(AER)
+
+R2logit<- function(y,model){
+  R2<- 1-(model$deviance/model$null.deviance)
+  return(R2)
+}
 
 
-## load data
+##setwd
+setwd("C:/Users/user/Downloads/school/master thesis/rode kruis/Elena R")
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-9.0.1')
 
-# from csv 
-data <- read.csv("C:/Users/fully_imputed_data.csv", header=TRUE, sep =  ",")
+
+# from csv -> not good because character
+data <- read.csv("C:/Users/user/Downloads/school/master thesis/rode kruis/Elena R/fully_imputed_data.csv", header=TRUE, sep =  ",")
 data <- data[,-c(1,5)]
-
-
 # rename variables
 
 my_data <- as_tibble(data)
@@ -116,44 +121,24 @@ train_y <- as.vector(train_matrix$cases)
 test_x <- as.matrix(test_matrix[,2:39])
 test_y <- as.vector(test_matrix$cases)
 
-## bayesian neural net
-bayes_net <- brnn(train_x, train_y, neurons=2)
+# test overdispersion
+fit = glm(cases ~ .
+          ,family="poisson",data=new_numeric_matrix) 
 
-# prediction
-bayes_predict <- predict(bayes_net,test_x)
+dispersiontest(fit, trafo = NULL, alternative = c('greater'))
 
-# rmse
-bayes_rmse <- RMSE(bayes_predict, test_y)
+# test multicollin
+library(mctest)
 
-# mase
-MASE_bayes <- mase(test_y, bayes_predict)
-#MASE_bayes_2 <- mase(test_y, bayes_predict, step_size = 12)
+y <- as.vector(data$cases)
+x <- data[,c(2:39)]
 
-# maape
-library(TSrepr)
-MAAPE_bayes <- maape(test_y, bayes_predict)
+imcdiag(x,y, na.rm = T, method = "VIF") 
 
-# mape 
-test_y_zero <- test_y == 0
-bayes_predict_nozero <- subset(bayes_predict, test_y_zero == FALSE)
-test_y_nozero <- test_y[ test_y != 0 ]
-MAPE_bayes_nozero <- mape(test_y_nozero, bayes_predict_nozero)
+# histograms
+cases <- data$cases
+hist(cases, xlab = "New Dengue Cases" )
 
-# mae
-test_y_zero <- test_y == 0
-bayes_predict_zero <- subset(bayes_predict, test_y_zero == TRUE)
-test_y_zero <- test_y[ test_y == 0 ]
-MAE_bayes_zero <- mae(test_y_zero, bayes_predict_zero)
-
-
-
-# get coefficients
-neuron_1 <- bayes_net$theta[[1]]
-neuron_2 <- bayes_net$theta[[2]]
-variables <- c('weight', 'bias', names(data[2:39]))
-bayes_coef <- cbind(variables, neuron_1, neuron_2)
-
-other_coef <- coef.brnn(bayes_net)
-View(other_coef)
-
+fcs_var <- x[,c(25:37)]
+multi.hist(fcs_var)
 
